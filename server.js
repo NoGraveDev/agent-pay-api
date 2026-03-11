@@ -12,14 +12,13 @@ const WALLET = process.env.WALLET_ADDRESS;
 const NETWORK = "eip155:8453"; // Base mainnet
 
 // ─── x402 Payment Setup ──────────────────────────────
-// x402 payment gating will be enabled once CDP API keys are configured.
-// For now, all endpoints are open to build traffic and get listed on directories.
 let resourceServer = null;
+let applyPayments = null;
 
 const hasKeys = process.env.CDP_API_KEY_ID && process.env.CDP_API_KEY_SECRET;
 if (hasKeys) {
   try {
-    const { paymentMiddleware, x402ResourceServer } = await import("@x402/express");
+    const x402Express = await import("@x402/express");
     const { ExactEvmScheme } = await import("@x402/evm/exact/server");
     const { HTTPFacilitatorClient } = await import("@x402/core/server");
     const { createFacilitatorConfig } = await import("@coinbase/x402");
@@ -28,7 +27,8 @@ if (hasKeys) {
       process.env.CDP_API_KEY_SECRET
     );
     const facilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
-    resourceServer = new x402ResourceServer(facilitatorClient).register(NETWORK, new ExactEvmScheme());
+    resourceServer = new x402Express.x402ResourceServer(facilitatorClient).register(NETWORK, new ExactEvmScheme());
+    applyPayments = x402Express.paymentMiddleware;
     console.log("x402 payment middleware initialized");
   } catch (e) {
     console.warn("x402 setup failed:", e.message);
@@ -78,8 +78,9 @@ const pricing = {
 };
 
 // Apply payment middleware if configured
-if (resourceServer) {
-  app.use(paymentMiddleware(pricing, resourceServer));
+if (resourceServer && applyPayments) {
+  app.use(applyPayments(pricing, resourceServer));
+  console.log("Payment gating ACTIVE — agents must pay USDC on Base");
 }
 
 // ─── Helper: fetch with timeout ──────────────────────

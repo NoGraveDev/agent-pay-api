@@ -384,19 +384,194 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", endpoints: Object.keys(pricing).length, wallet: WALLET });
 });
 
-// Root — API docs
+// Root — landing page for humans, JSON for agents
 app.get("/", (req, res) => {
-  res.json({
-    name: "NoGrave Agent Services",
-    description: "Pay-per-use APIs for AI agents. USDC micropayments on Base via x402.",
-    wallet: WALLET,
-    docs: "Send requests to any endpoint. If x402 is active, pay USDC on Base. Discovery at /.well-known/mcp.json and /.well-known/agent.json",
-    endpoints: Object.entries(pricing).map(([route, config]) => ({
-      route,
-      price: config.accepts[0].price,
-      description: config.description,
-    })),
-  });
+  const accept = req.headers.accept || "";
+  if (accept.includes("application/json") && !accept.includes("text/html")) {
+    return res.json({
+      name: "NoGrave Agent Services",
+      description: "Pay-per-use APIs for AI agents. USDC micropayments on Base via x402.",
+      wallet: WALLET,
+      docs: "Send requests to any endpoint. If x402 is active, pay USDC on Base. Discovery at /.well-known/mcp.json and /.well-known/agent.json",
+      endpoints: Object.entries(pricing).map(([route, config]) => ({
+        route,
+        price: config.accepts[0].price,
+        description: config.description,
+      })),
+    });
+  }
+
+  const endpoints = Object.entries(pricing).map(([route, config]) => {
+    const [method, path] = route.split(" ");
+    return `
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method ${method.toLowerCase()}">${method}</span>
+          <code class="path">${path}</code>
+          <span class="price">${config.accepts[0].price}</span>
+        </div>
+        <p class="desc">${config.description}</p>
+      </div>`;
+  }).join("");
+
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoGrave Agent Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e8;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .glow-orb {
+      position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.15; z-index: 0;
+    }
+    .glow-1 { width: 500px; height: 500px; background: #6366f1; top: -100px; right: -100px; }
+    .glow-2 { width: 400px; height: 400px; background: #06b6d4; bottom: -100px; left: -100px; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 60px 24px; position: relative; z-index: 1; }
+
+    .hero { text-align: center; margin-bottom: 64px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 100px; padding: 6px 16px; font-size: 13px; color: #818cf8;
+      margin-bottom: 24px; font-weight: 500;
+    }
+    .badge .dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #818cf8 50%, #06b6d4 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      line-height: 1.1; margin-bottom: 16px;
+    }
+    .subtitle { font-size: 18px; color: #9ca3af; max-width: 600px; margin: 0 auto 32px; line-height: 1.6; }
+
+    .stats {
+      display: flex; justify-content: center; gap: 40px; margin-bottom: 32px;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-size: 28px; font-weight: 700; color: #fff; }
+    .stat-label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    .wallet-box {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 12px 20px; font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; color: #9ca3af;
+    }
+    .wallet-box .label { color: #6366f1; font-weight: 600; }
+
+    .section-title {
+      font-size: 14px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 2px; color: #6366f1; margin-bottom: 24px;
+    }
+
+    .endpoints { display: flex; flex-direction: column; gap: 12px; margin-bottom: 64px; }
+    .endpoint {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; padding: 20px 24px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .endpoint:hover { border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.04); }
+    .endpoint-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    .method {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+      padding: 4px 10px; border-radius: 6px; text-transform: uppercase;
+    }
+    .method.get { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .method.post { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+    .path { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #e0e0e8; flex: 1; }
+    .price {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;
+      color: #06b6d4; background: rgba(6, 182, 212, 0.1); padding: 4px 12px; border-radius: 6px;
+    }
+    .desc { font-size: 14px; color: #9ca3af; line-height: 1.5; }
+
+    .discovery { margin-bottom: 64px; }
+    .discovery-links { display: flex; gap: 12px; flex-wrap: wrap; }
+    .discovery-link {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 14px 20px; text-decoration: none;
+      color: #e0e0e8; font-size: 14px; font-weight: 500;
+      transition: border-color 0.2s;
+    }
+    .discovery-link:hover { border-color: rgba(99, 102, 241, 0.4); }
+    .discovery-link code { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #818cf8; }
+
+    .footer {
+      text-align: center; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.06);
+      color: #6b7280; font-size: 13px;
+    }
+    .footer a { color: #818cf8; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="glow-orb glow-1"></div>
+  <div class="glow-orb glow-2"></div>
+
+  <div class="container">
+    <div class="hero">
+      <div class="badge"><span class="dot"></span> x402 Payments Active</div>
+      <h1>NoGrave Agent Services</h1>
+      <p class="subtitle">Pay-per-use APIs built for AI agents. Crypto data, web extraction, data transformation, and forex rates — all paid with USDC micropayments on Base.</p>
+
+      <div class="stats">
+        <div class="stat"><div class="stat-value">9</div><div class="stat-label">Endpoints</div></div>
+        <div class="stat"><div class="stat-value">$0.005</div><div class="stat-label">Starting Price</div></div>
+        <div class="stat"><div class="stat-value">USDC</div><div class="stat-label">on Base</div></div>
+      </div>
+
+      <div class="wallet-box">
+        <span class="label">Wallet</span>
+        ${WALLET}
+      </div>
+    </div>
+
+    <div class="section-title">Endpoints</div>
+    <div class="endpoints">${endpoints}</div>
+
+    <div class="discovery">
+      <div class="section-title">Agent Discovery</div>
+      <div class="discovery-links">
+        <a href="/.well-known/mcp.json" class="discovery-link">
+          🔌 <span>MCP Config</span> <code>/.well-known/mcp.json</code>
+        </a>
+        <a href="/.well-known/agent.json" class="discovery-link">
+          🤖 <span>A2A Agent Card</span> <code>/.well-known/agent.json</code>
+        </a>
+        <a href="/health" class="discovery-link">
+          💚 <span>Health Check</span> <code>/health</code>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Built by <a href="https://github.com/NoGraveDev" target="_blank">No Grave LLC</a> · Powered by <a href="https://www.x402.org/" target="_blank">x402 Protocol</a></p>
+    </div>
+  </div>
+</body>
+</html>`);
 });
 
 app.listen(PORT, () => {

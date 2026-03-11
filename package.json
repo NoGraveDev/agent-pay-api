@@ -1,0 +1,25 @@
+{
+  "name": "agent-pay-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@coinbase/x402": "^1.0.1",
+    "@x402/core": "^2.6.0",
+    "@x402/evm": "^2.6.0",
+    "@x402/express": "^2.6.0",
+    "@x402/extensions": "^2.6.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "node-fetch": "^3.3.2"
+  }
+}
